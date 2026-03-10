@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo } from 'react';
-import { COLLECTIONS } from '@/config/contracts';
+import { useContracts } from '@/hooks/useContracts';
 import { NFTGrid } from '@/components/NFTGrid';
 import { NFTListRow } from '@/components/NFTListRow';
 import { NftCardSkeleton } from '@/components/NftCardSkeleton';
@@ -23,6 +23,7 @@ export default function GalleryPage() {
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [page, setPage] = useState(1);
 
+  const { contracts } = useContracts();
   const { nfts: allNfts, loading, error, progress } = useAllNfts();
 
   const toggleFavorite = useCallback((id: string) => {
@@ -73,7 +74,7 @@ export default function GalleryPage() {
             <StatsCard
               icon={<svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>}
               label="Коллекции"
-              value={COLLECTIONS.length.toString()}
+              value={contracts.length.toString()}
               gradient="from-nft-cyan to-blue-500"
             />
             <StatsCard

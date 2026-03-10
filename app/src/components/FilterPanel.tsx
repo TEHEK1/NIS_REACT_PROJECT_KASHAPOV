@@ -1,6 +1,7 @@
 import { memo, useState } from 'react';
 import type { SortOption } from '@/types';
-import { COLLECTIONS } from '@/config/contracts';
+import { useContracts } from '@/hooks/useContracts';
+import { useContractInfo } from '@/hooks/useContractInfo';
 import { useTheme } from '@/context/ThemeContext';
 
 interface FilterPanelProps {
@@ -25,6 +26,7 @@ export const FilterPanel = memo(function FilterPanel({
 }: FilterPanelProps) {
   const [isOpen, setIsOpen] = useState(false);
   const { isDark } = useTheme();
+  const { contracts } = useContracts();
 
   const selectClass = `w-full px-3 py-2.5 rounded-xl outline-none text-sm transition-all ${
     isDark
@@ -65,8 +67,8 @@ export const FilterPanel = memo(function FilterPanel({
             <label className={`block text-xs font-medium mb-1.5 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Коллекция</label>
             <select value={collectionSlug ?? ''} onChange={e => onCollectionChange(e.target.value || null)} className={selectClass}>
               <option value="">Все коллекции</option>
-              {COLLECTIONS.map(c => (
-                <option key={c.slug} value={c.slug}>{c.name}</option>
+              {contracts.map(c => (
+                <ContractOption key={c.slug} slug={c.slug} address={c.contractAddress} />
               ))}
             </select>
           </div>
@@ -90,3 +92,8 @@ export const FilterPanel = memo(function FilterPanel({
     </div>
   );
 });
+
+function ContractOption({ slug, address }: { slug: string; address: string }) {
+  const { info } = useContractInfo(address);
+  return <option value={slug}>{info?.name ?? slug}</option>;
+}

@@ -12,11 +12,7 @@ export interface NFT {
 
 export interface CollectionConfig {
   contractAddress: string;
-  name: string;
   slug: string;
-  description: string;
-  tokenIds: number[];
-  verified: boolean;
 }
 
 export interface Trait {

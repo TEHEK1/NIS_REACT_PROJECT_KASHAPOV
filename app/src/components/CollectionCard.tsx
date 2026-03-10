@@ -1,6 +1,7 @@
 import { memo } from 'react';
 import { Link } from 'react-router-dom';
 import type { CollectionConfig } from '@/types';
+import { useContractInfo } from '@/hooks/useContractInfo';
 import { truncateAddress } from '@/utils/format';
 import { generateGradient, generateAvatarGradient } from '@/utils/gradient';
 import { useTheme } from '@/context/ThemeContext';
@@ -11,6 +12,7 @@ interface CollectionCardProps {
 
 export const CollectionCard = memo(function CollectionCard({ collection }: CollectionCardProps) {
   const { isDark } = useTheme();
+  const { info, loading } = useContractInfo(collection.contractAddress);
 
   return (
     <Link
@@ -30,21 +32,22 @@ export const CollectionCard = memo(function CollectionCard({ collection }: Colle
       <div className="relative px-5 pb-5">
         <div className="-mt-8 mb-3 relative z-10 flex items-end gap-3">
           <div
-            className={`w-16 h-16 rounded-xl border-4 ${isDark ? 'border-nft-card' : 'border-white'}`}
+            className={`w-16 h-16 rounded-xl border-4 flex items-center justify-center text-xl font-black text-white/80 ${isDark ? 'border-nft-card' : 'border-white'}`}
             style={{ background: generateAvatarGradient(collection.slug) }}
-          />
+          >
+            {info?.symbol?.slice(0, 3) ?? '...'}
+          </div>
           <div className="flex items-center gap-1.5 mb-1">
-            <h3 className="font-bold text-white text-shadow">{collection.name}</h3>
-            {collection.verified && (
-              <svg className="w-4 h-4 text-nft-cyan flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+            {loading ? (
+              <div className={`h-5 w-32 rounded animate-pulse ${isDark ? 'bg-nft-border/30' : 'bg-gray-300'}`} />
+            ) : (
+              <h3 className="font-bold text-white text-shadow">{info?.name ?? truncateAddress(collection.contractAddress)}</h3>
             )}
           </div>
         </div>
 
-        <p className={`text-sm line-clamp-2 mb-4 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-          {collection.description}
+        <p className={`text-sm mb-4 font-mono ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+          {info ? `${info.symbol} · Total Supply: ${Number(info.totalSupply).toLocaleString()}` : truncateAddress(collection.contractAddress)}
         </p>
 
         <div className="grid grid-cols-2 gap-3">
@@ -53,8 +56,8 @@ export const CollectionCard = memo(function CollectionCard({ collection }: Colle
             <p className="text-sm font-mono font-semibold mt-0.5">{truncateAddress(collection.contractAddress)}</p>
           </div>
           <div className={`text-center p-2 rounded-lg ${isDark ? 'bg-nft-dark/50' : 'bg-gray-50'}`}>
-            <p className={`text-[10px] uppercase tracking-wider ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Токены</p>
-            <p className="text-sm font-semibold mt-0.5">{collection.tokenIds.length} шт.</p>
+            <p className={`text-[10px] uppercase tracking-wider ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Supply</p>
+            <p className="text-sm font-semibold mt-0.5">{info ? Number(info.totalSupply).toLocaleString() : '...'}</p>
           </div>
         </div>
       </div>

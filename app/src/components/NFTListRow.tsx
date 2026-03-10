@@ -1,7 +1,7 @@
 import { memo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { NFT } from '@/types';
-import { getCollectionByAddress } from '@/config/contracts';
+import { useContractInfo } from '@/hooks/useContractInfo';
 import { truncateAddress } from '@/utils/format';
 import { generateGradient } from '@/utils/gradient';
 import { useTheme } from '@/context/ThemeContext';
@@ -15,7 +15,7 @@ interface NFTListRowProps {
 export const NFTListRow = memo(function NFTListRow({ nft, isFavorite, onToggleFavorite }: NFTListRowProps) {
   const [imgError, setImgError] = useState(false);
   const { isDark } = useTheme();
-  const collection = getCollectionByAddress(nft.contractAddress);
+  const { info } = useContractInfo(nft.contractAddress);
 
   return (
     <Link
@@ -45,7 +45,7 @@ export const NFTListRow = memo(function NFTListRow({ nft, isFavorite, onToggleFa
           </span>
         </div>
         <p className={`text-xs truncate ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-          {collection?.name ?? truncateAddress(nft.contractAddress)}
+          {info?.name ?? truncateAddress(nft.contractAddress)}
         </p>
       </div>
 

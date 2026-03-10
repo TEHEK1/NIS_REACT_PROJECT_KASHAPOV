@@ -162,6 +162,34 @@ class NftService {
     await Promise.allSettled(promises);
     return results.sort((a, b) => a.tokenId - b.tokenId);
   }
+
+  private startIdCache = new Map<string, number>();
+
+  async detectStartId(contractAddress: string): Promise<number> {
+    const key = contractAddress.toLowerCase();
+    const cached = this.startIdCache.get(key);
+    if (cached !== undefined) return cached;
+
+    try {
+      await web3Service.getNFTTokenURI(contractAddress, 0);
+      this.startIdCache.set(key, 0);
+      return 0;
+    } catch {
+      this.startIdCache.set(key, 1);
+      return 1;
+    }
+  }
+
+  async fetchRange(
+    contractAddress: string,
+    collectionSlug: string,
+    from: number,
+    count: number,
+    onProgress?: (loaded: number, total: number) => void,
+  ): Promise<NFT[]> {
+    const ids = Array.from({ length: count }, (_, i) => from + i);
+    return this.fetchBatch(contractAddress, ids, collectionSlug, onProgress);
+  }
 }
 
 export const nftService = new NftService();

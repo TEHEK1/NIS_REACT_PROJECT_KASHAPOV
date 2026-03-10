@@ -1,7 +1,8 @@
 import { memo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { NFT } from '@/types';
-import { getCollectionByAddress } from '@/config/contracts';
+import { contractStore } from '@/config/contracts';
+import { useContractInfo } from '@/hooks/useContractInfo';
 import { truncateAddress } from '@/utils/format';
 import { generateGradient } from '@/utils/gradient';
 import { useTheme } from '@/context/ThemeContext';
@@ -15,7 +16,8 @@ interface NFTCardProps {
 export const NFTCard = memo(function NFTCard({ nft, isFavorite, onToggleFavorite }: NFTCardProps) {
   const [imgError, setImgError] = useState(false);
   const { isDark } = useTheme();
-  const collection = getCollectionByAddress(nft.contractAddress);
+  const entry = contractStore.getByAddress(nft.contractAddress);
+  const { info } = useContractInfo(nft.contractAddress);
 
   return (
     <Link
@@ -59,10 +61,10 @@ export const NFTCard = memo(function NFTCard({ nft, isFavorite, onToggleFavorite
           </svg>
         </button>
 
-        {collection && (
+        {(info || entry) && (
           <div className="absolute bottom-3 left-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
             <span className="px-2.5 py-1 bg-nft-violet/80 backdrop-blur-md rounded-lg text-xs font-medium text-white">
-              {collection.name}
+              {info?.name ?? entry?.slug}
             </span>
           </div>
         )}

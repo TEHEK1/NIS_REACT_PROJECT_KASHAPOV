@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { nftService } from '@/services/nftService';
-import { getCollectionByAddress } from '@/config/contracts';
+import { contractStore } from '@/config/contracts';
 import type { NFT } from '@/types';
 
 export function useNftDetail(contractAddress: string | undefined, tokenId: number | undefined) {
@@ -14,8 +14,8 @@ export function useNftDetail(contractAddress: string | undefined, tokenId: numbe
       return;
     }
 
-    const col = getCollectionByAddress(contractAddress);
-    const slug = col?.slug ?? 'unknown';
+    const entry = contractStore.getByAddress(contractAddress);
+    const slug = entry?.slug ?? 'unknown';
 
     setLoading(true);
     setError(null);

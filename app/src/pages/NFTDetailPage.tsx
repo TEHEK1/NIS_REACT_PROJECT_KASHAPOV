@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { getCollectionByAddress } from '@/config/contracts';
+import { contractStore } from '@/config/contracts';
+import { useContractInfo } from '@/hooks/useContractInfo';
 import { TraitBadge } from '@/components/TraitBadge';
 import { ActivityTable } from '@/components/ActivityTable';
 import { NftCardSkeleton } from '@/components/NftCardSkeleton';
@@ -25,7 +26,8 @@ export default function NFTDetailPage() {
 
   const tokenId = tokenIdParam ? parseInt(tokenIdParam, 10) : undefined;
   const { nft, loading, error } = useNftDetail(contract, tokenId);
-  const collection = contract ? getCollectionByAddress(contract) : undefined;
+  const entry = contract ? contractStore.getByAddress(contract) : undefined;
+  const { info: contractInfo } = useContractInfo(contract);
   const nftIdStr = contract && tokenId !== undefined ? makeNftId(contract, tokenId) : '';
 
   useEffect(() => {
@@ -96,16 +98,14 @@ export default function NFTDetailPage() {
         </div>
 
         <div>
-          {collection && (
+          {(entry || contractInfo) && (
             <Link
-              to={`/collections/${collection.slug}`}
+              to={entry ? `/collections/${entry.slug}` : '#'}
               className="inline-flex items-center gap-1.5 text-sm text-nft-violet hover:text-nft-pink transition-colors font-medium mb-2"
             >
-              {collection.name}
-              {collection.verified && (
-                <svg className="w-3.5 h-3.5 text-nft-cyan" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+              {contractInfo?.name ?? truncateAddress(contract ?? '')}
+              {contractInfo && (
+                <span className="text-xs text-gray-500 font-mono ml-1">({contractInfo.symbol})</span>
               )}
             </Link>
           )}

@@ -1,7 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { nftService } from '@/services/nftService';
-import { COLLECTIONS } from '@/config/contracts';
+import { web3Service } from '@/services/web3';
+import { contractStore } from '@/config/contracts';
 import type { NFT } from '@/types';
+
+const PER_COLLECTION = 6;
 
 export function useAllNfts() {
   const [nfts, setNfts] = useState<NFT[]>(() => nftService.getAllCached());
@@ -10,22 +13,30 @@ export function useAllNfts() {
   const [error, setError] = useState<string | null>(null);
 
   const fetchAll = useCallback(async () => {
+    const contracts = contractStore.getAll();
     setLoading(true);
     setError(null);
 
-    const totalTokens = COLLECTIONS.reduce((s, c) => s + c.tokenIds.length, 0);
+    const totalTokens = contracts.length * PER_COLLECTION;
     let globalLoaded = 0;
     setProgress({ loaded: 0, total: totalTokens });
 
     try {
       const batches = await Promise.allSettled(
-        COLLECTIONS.map(col =>
-          nftService.fetchBatch(col.contractAddress, col.tokenIds, col.slug, (n) => {
+        contracts.map(async (col) => {
+          const sId = await nftService.detectStartId(col.contractAddress);
+
+          let supply = PER_COLLECTION;
+          try {
+            const info = await web3Service.getContractInfo(col.contractAddress);
+            supply = Math.min(PER_COLLECTION, parseInt(info.totalSupply, 10) || PER_COLLECTION);
+          } catch { /* use default */ }
+
+          return nftService.fetchRange(col.contractAddress, col.slug, sId, supply, () => {
             globalLoaded++;
             setProgress({ loaded: globalLoaded, total: totalTokens });
-            void n;
-          })
-        )
+          });
+        })
       );
 
       const all: NFT[] = [];
