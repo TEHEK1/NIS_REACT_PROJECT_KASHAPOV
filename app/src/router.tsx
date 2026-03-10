@@ -21,7 +21,7 @@ function PageLoader() {
   );
 }
 
-function withSuspense(Component: React.LazyExoticComponent<() => JSX.Element>) {
+function withSuspense(Component: React.LazyExoticComponent<React.ComponentType>) {
   return (
     <Suspense fallback={<PageLoader />}>
       <Component />

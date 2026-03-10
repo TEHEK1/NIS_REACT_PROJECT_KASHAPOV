@@ -10,7 +10,7 @@ interface SearchBarProps {
 export const SearchBar = memo(function SearchBar({ value, onChange, placeholder = 'Поиск NFT...' }: SearchBarProps) {
   const [localValue, setLocalValue] = useState(value);
   const { isDark } = useTheme();
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     setLocalValue(value);
@@ -18,7 +18,7 @@ export const SearchBar = memo(function SearchBar({ value, onChange, placeholder 
 
   const handleChange = (newValue: string) => {
     setLocalValue(newValue);
-    clearTimeout(debounceRef.current);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => onChange(newValue), 300);
   };
 
