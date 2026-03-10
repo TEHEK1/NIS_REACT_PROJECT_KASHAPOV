@@ -12,6 +12,9 @@
 | **Tailwind CSS** | 3.4 | Utility-first CSS фреймворк |
 | **Web3.js** | 4.x | Взаимодействие с Ethereum-блокчейном |
 | **React Router** | 7.x | Клиентская маршрутизация (SPA) |
+| **Vitest** | 4.x | Фреймворк для тестирования |
+| **Testing Library** | 16.x | Тестирование React-компонентов |
+| **GitHub Actions** | — | CI/CD пайплайн |
 
 ## Памятка по запуску
 
@@ -35,6 +38,13 @@ npm run dev
 
 Приложение будет доступно по адресу: **http://localhost:3000**
 
+### Тесты
+
+```bash
+npm test            # запуск всех тестов
+npm run test:watch  # запуск в watch-режиме
+```
+
 ### Сборка
 
 ```bash
@@ -52,6 +62,8 @@ npm run preview
 - **Тёмная/светлая тема** — переключение с сохранением выбора
 - **Адаптивный дизайн** — mobile-first, поддержка всех размеров экранов
 - **Ленивая загрузка** — code splitting страниц через React.lazy + Suspense
+- **Тестирование** — 66 тестов: unit (утилиты), хуки, компоненты (Vitest + Testing Library)
+- **CI/CD** — GitHub Actions: lint → test → build на каждый push/PR
 
 ## Скриншот стартовой страницы
 
@@ -74,5 +86,25 @@ src/
 ├── context/             # React Context (Theme, Wallet)
 ├── hooks/               # Кастомные хуки (favorites, filters)
 ├── components/          # UI-компоненты
-└── pages/               # Страницы приложения
+├── pages/               # Страницы приложения
+└── test/                # Тестовые утилиты и setup
 ```
+
+## Тестирование
+
+Проект использует **Vitest** + **React Testing Library**. Тесты покрывают три уровня:
+
+| Уровень | Файлы | Количество |
+|---|---|---|
+| Unit (утилиты) | `format.test.ts`, `gradient.test.ts` | 22 |
+| Хуки | `useFavorites.test.ts`, `useGalleryFilters.test.ts` | 18 |
+| Компоненты | `NFTCard`, `SearchBar`, `ThemeToggle`, `NFTGrid`, `TraitBadge`, `StatsCard` | 26 |
+| **Итого** | **10 файлов** | **66 тестов** |
+
+## CI/CD
+
+GitHub Actions запускает три задачи на каждый push и pull request:
+
+1. **Lint** — проверка кода через ESLint
+2. **Test** — запуск всех 66 тестов через Vitest
+3. **Build** — сборка production-бандла (зависит от lint и test)
