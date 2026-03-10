@@ -1,57 +1,44 @@
 export interface NFT {
   id: string;
+  contractAddress: string;
   tokenId: number;
   name: string;
   description: string;
   image: string;
-  price: number;
-  currency: 'ETH';
-  collectionId: string;
-  creator: Creator;
   ownerAddress: string;
   traits: Trait[];
-  createdAt: string;
-  likes: number;
-  isAuction: boolean;
-  auctionEndsAt?: string;
+  collectionSlug: string;
 }
 
-export interface Collection {
-  id: string;
+export interface CollectionConfig {
+  contractAddress: string;
   name: string;
   slug: string;
   description: string;
-  coverImage: string;
-  avatarImage: string;
-  floorPrice: number;
-  totalVolume: number;
-  itemCount: number;
-  ownerCount: number;
-  verified: boolean;
-}
-
-export interface Creator {
-  address: string;
-  name: string;
-  avatar: string;
+  tokenIds: number[];
   verified: boolean;
 }
 
 export interface Trait {
   traitType: string;
   value: string;
-  rarity: number;
 }
 
-export type SortOption = 'price-asc' | 'price-desc' | 'newest' | 'oldest' | 'most-liked';
+export type SortOption = 'name-asc' | 'name-desc' | 'token-asc' | 'token-desc';
 
 export interface GalleryFilters {
   search: string;
-  collectionId: string | null;
-  priceMin: number | null;
-  priceMax: number | null;
+  collectionSlug: string | null;
   sort: SortOption;
-  onlyAuctions: boolean;
+}
+
+export interface TransferEvent {
+  txHash: string;
+  from: string;
+  to: string;
+  blockNumber: number;
+  timestamp: number;
+  type: 'mint' | 'transfer';
 }
 
 export interface WalletState {
@@ -62,4 +49,17 @@ export interface WalletState {
   chainName: string | null;
   isConnecting: boolean;
   error: string | null;
+}
+
+export function makeNftId(contractAddress: string, tokenId: number): string {
+  return `${contractAddress.toLowerCase()}-${tokenId}`;
+}
+
+export function parseNftId(id: string): { contractAddress: string; tokenId: number } | null {
+  const idx = id.lastIndexOf('-');
+  if (idx === -1) return null;
+  const contractAddress = id.substring(0, idx);
+  const tokenId = parseInt(id.substring(idx + 1), 10);
+  if (isNaN(tokenId) || !contractAddress.startsWith('0x')) return null;
+  return { contractAddress, tokenId };
 }

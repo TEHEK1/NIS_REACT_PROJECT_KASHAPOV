@@ -8,6 +8,7 @@ const CollectionsPage = lazy(() => import('@/pages/CollectionsPage'));
 const CollectionDetailPage = lazy(() => import('@/pages/CollectionDetailPage'));
 const FavoritesPage = lazy(() => import('@/pages/FavoritesPage'));
 const WalletPage = lazy(() => import('@/pages/WalletPage'));
+const AddressPage = lazy(() => import('@/pages/AddressPage'));
 const NotFoundPage = lazy(() => import('@/pages/NotFoundPage'));
 
 function PageLoader() {
@@ -34,10 +35,11 @@ export const router = createBrowserRouter([
     element: <Layout />,
     children: [
       { index: true, element: withSuspense(GalleryPage) },
-      { path: 'nft/:id', element: withSuspense(NFTDetailPage) },
+      { path: 'nft/:contract/:tokenId', element: withSuspense(NFTDetailPage) },
       { path: 'collections', element: withSuspense(CollectionsPage) },
       { path: 'collections/:slug', element: withSuspense(CollectionDetailPage) },
       { path: 'favorites', element: withSuspense(FavoritesPage) },
+      { path: 'address/:address', element: withSuspense(AddressPage) },
       { path: 'wallet', element: withSuspense(WalletPage) },
       { path: '*', element: withSuspense(NotFoundPage) },
     ],

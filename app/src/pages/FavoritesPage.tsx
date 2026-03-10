@@ -1,18 +1,44 @@
-import { useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { nfts } from '@/data/nfts';
 import { NFTGrid } from '@/components/NFTGrid';
+import { NftCardSkeleton } from '@/components/NftCardSkeleton';
 import { useFavorites } from '@/hooks/useFavorites';
 import { useTheme } from '@/context/ThemeContext';
+import { nftService } from '@/services/nftService';
+import { parseNftId } from '@/types';
+import type { NFT } from '@/types';
 
 export default function FavoritesPage() {
   const { isDark } = useTheme();
   const { favorites, isFavorite, toggleFavorite, count } = useFavorites();
+  const [nfts, setNfts] = useState<NFT[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const favoriteNfts = useMemo(
-    () => nfts.filter(nft => favorites.has(nft.id)),
-    [favorites]
-  );
+  const loadFavorites = useCallback(async () => {
+    setLoading(true);
+    const results: NFT[] = [];
+
+    for (const id of favorites) {
+      const cached = nftService.getCached(id);
+      if (cached) {
+        results.push(cached);
+        continue;
+      }
+
+      const parsed = parseNftId(id);
+      if (parsed) {
+        try {
+          const nft = await nftService.fetchNft(parsed.contractAddress, parsed.tokenId, 'unknown');
+          results.push(nft);
+        } catch { /* skip */ }
+      }
+    }
+
+    setNfts(results);
+    setLoading(false);
+  }, [favorites]);
+
+  useEffect(() => { loadFavorites(); }, [loadFavorites]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
@@ -28,8 +54,14 @@ export default function FavoritesPage() {
         </p>
       </div>
 
-      {favoriteNfts.length > 0 ? (
-        <NFTGrid nfts={favoriteNfts} isFavorite={isFavorite} onToggleFavorite={toggleFavorite} />
+      {loading && count > 0 ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+          {Array.from({ length: Math.min(count, 4) }).map((_, i) => (
+            <NftCardSkeleton key={i} />
+          ))}
+        </div>
+      ) : nfts.length > 0 ? (
+        <NFTGrid nfts={nfts} isFavorite={isFavorite} onToggleFavorite={toggleFavorite} />
       ) : (
         <div className="text-center py-20">
           <svg className={`w-20 h-20 mx-auto mb-4 ${isDark ? 'text-gray-600' : 'text-gray-300'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">

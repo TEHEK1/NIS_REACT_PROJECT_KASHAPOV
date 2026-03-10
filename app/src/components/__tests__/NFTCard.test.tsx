@@ -6,25 +6,15 @@ import { renderWithProviders } from '@/test/utils';
 import type { NFT } from '@/types';
 
 const mockNft: NFT = {
-  id: 'test-1',
+  id: '0x1234567890abcdef1234567890abcdef12345678-42',
+  contractAddress: '0x1234567890abcdef1234567890abcdef12345678',
   tokenId: 42,
   name: 'Test NFT #42',
   description: 'A test NFT',
   image: 'https://example.com/image.png',
-  price: 2.5,
-  currency: 'ETH',
-  collectionId: 'cosmic-apes',
-  creator: {
-    address: '0x1234567890abcdef',
-    name: 'TestCreator',
-    avatar: 'https://example.com/avatar.png',
-    verified: true,
-  },
-  ownerAddress: '0xabcdef1234567890',
-  traits: [],
-  createdAt: '2026-01-15T00:00:00Z',
-  likes: 150,
-  isAuction: false,
+  ownerAddress: '0xabcdef1234567890abcdef1234567890abcdef12',
+  traits: [{ traitType: 'Background', value: 'Blue' }],
+  collectionSlug: 'test-collection',
 };
 
 describe('NFTCard', () => {
@@ -35,25 +25,25 @@ describe('NFTCard', () => {
     expect(screen.getByText('Test NFT #42')).toBeInTheDocument();
   });
 
-  it('отображает имя создателя', () => {
+  it('отображает адрес владельца', () => {
     renderWithProviders(
       <NFTCard nft={mockNft} isFavorite={false} onToggleFavorite={() => {}} />
     );
-    expect(screen.getByText(/TestCreator/)).toBeInTheDocument();
+    expect(screen.getByText('0xabcd...ef12')).toBeInTheDocument();
   });
 
-  it('отображает цену в ETH', () => {
+  it('отображает token ID', () => {
     renderWithProviders(
       <NFTCard nft={mockNft} isFavorite={false} onToggleFavorite={() => {}} />
     );
-    expect(screen.getByText(/2\.50 ETH/)).toBeInTheDocument();
+    expect(screen.getByText('#42')).toBeInTheDocument();
   });
 
-  it('отображает количество лайков', () => {
+  it('отображает количество свойств', () => {
     renderWithProviders(
       <NFTCard nft={mockNft} isFavorite={false} onToggleFavorite={() => {}} />
     );
-    expect(screen.getByText('150')).toBeInTheDocument();
+    expect(screen.getByText('1 свойств')).toBeInTheDocument();
   });
 
   it('содержит ссылку на детальную страницу', () => {
@@ -61,7 +51,7 @@ describe('NFTCard', () => {
       <NFTCard nft={mockNft} isFavorite={false} onToggleFavorite={() => {}} />
     );
     const link = screen.getByRole('link');
-    expect(link).toHaveAttribute('href', '/nft/test-1');
+    expect(link).toHaveAttribute('href', `/nft/${mockNft.contractAddress}/${mockNft.tokenId}`);
   });
 
   it('вызывает onToggleFavorite при клике на кнопку избранного', async () => {
@@ -76,26 +66,22 @@ describe('NFTCard', () => {
     const heartBtn = buttons.find(b => b.querySelector('svg'));
     if (heartBtn) await user.click(heartBtn);
 
-    expect(onToggle).toHaveBeenCalledWith('test-1');
+    expect(onToggle).toHaveBeenCalledWith(mockNft.id);
   });
 
-  it('отображает "Ставка" для аукционов', () => {
-    const auctionNft: NFT = {
-      ...mockNft,
-      isAuction: true,
-      auctionEndsAt: new Date(Date.now() + 86_400_000).toISOString(),
-    };
-
+  it('показывает gradient fallback при отсутствии картинки', () => {
+    const noImgNft: NFT = { ...mockNft, image: '' };
     renderWithProviders(
-      <NFTCard nft={auctionNft} isFavorite={false} onToggleFavorite={() => {}} />
+      <NFTCard nft={noImgNft} isFavorite={false} onToggleFavorite={() => {}} />
     );
-    expect(screen.getByText('Ставка')).toBeInTheDocument();
+    expect(screen.getByText('Test NFT #42')).toBeInTheDocument();
   });
 
-  it('отображает "Цена" для обычных NFT', () => {
+  it('корректно работает без traits', () => {
+    const noTraitsNft: NFT = { ...mockNft, traits: [] };
     renderWithProviders(
-      <NFTCard nft={mockNft} isFavorite={false} onToggleFavorite={() => {}} />
+      <NFTCard nft={noTraitsNft} isFavorite={false} onToggleFavorite={() => {}} />
     );
-    expect(screen.getByText('Цена')).toBeInTheDocument();
+    expect(screen.getByText('Test NFT #42')).toBeInTheDocument();
   });
 });

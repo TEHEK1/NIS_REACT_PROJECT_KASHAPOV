@@ -1,40 +1,71 @@
-import { useMemo, useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { nfts } from '@/data/nfts';
-import { collections } from '@/data/collections';
+import { getCollectionByAddress } from '@/config/contracts';
 import { TraitBadge } from '@/components/TraitBadge';
-import { NFTCard } from '@/components/NFTCard';
+import { ActivityTable } from '@/components/ActivityTable';
+import { NftCardSkeleton } from '@/components/NftCardSkeleton';
+import { useNftDetail } from '@/hooks/useNftDetail';
 import { useFavorites } from '@/hooks/useFavorites';
-import { formatEth, timeAgo, timeRemaining, truncateAddress } from '@/utils/format';
+import { useRecentlyViewed } from '@/hooks/useRecentlyViewed';
+import { truncateAddress } from '@/utils/format';
 import { generateGradient } from '@/utils/gradient';
 import { useTheme } from '@/context/ThemeContext';
-import { useWallet } from '@/context/WalletContext';
+import { useToast } from '@/context/ToastContext';
+import { makeNftId } from '@/types';
+import { useEffect } from 'react';
 
 export default function NFTDetailPage() {
-  const { id } = useParams<{ id: string }>();
+  const { contract, tokenId: tokenIdParam } = useParams<{ contract: string; tokenId: string }>();
   const navigate = useNavigate();
   const { isDark } = useTheme();
-  const { isConnected } = useWallet();
-  const { isFavorite, toggleFavorite } = useFavorites();
+  const { isFavorite, toggleFavorite: rawToggle } = useFavorites();
+  const { addViewed } = useRecentlyViewed();
+  const { toast } = useToast();
   const [imgError, setImgError] = useState(false);
-  const [showBuyModal, setShowBuyModal] = useState(false);
 
-  const nft = useMemo(() => nfts.find(n => n.id === id), [id]);
-  const collection = useMemo(() => nft ? collections.find(c => c.id === nft.collectionId) : null, [nft]);
-  const relatedNfts = useMemo(() =>
-    nft ? nfts.filter(n => n.collectionId === nft.collectionId && n.id !== nft.id).slice(0, 4) : [],
-    [nft]
-  );
+  const tokenId = tokenIdParam ? parseInt(tokenIdParam, 10) : undefined;
+  const { nft, loading, error } = useNftDetail(contract, tokenId);
+  const collection = contract ? getCollectionByAddress(contract) : undefined;
+  const nftIdStr = contract && tokenId !== undefined ? makeNftId(contract, tokenId) : '';
 
-  if (!nft) {
+  useEffect(() => {
+    if (nftIdStr) addViewed(nftIdStr);
+  }, [nftIdStr, addViewed]);
+
+  const toggleFavorite = useCallback((id: string) => {
+    const was = isFavorite(id);
+    rawToggle(id);
+    toast(was ? 'Удалено из избранного' : 'Добавлено в избранное', was ? 'info' : 'success');
+  }, [rawToggle, isFavorite, toast]);
+
+  if (loading) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <NftCardSkeleton />
+          <div className="space-y-4">
+            <div className={`h-8 rounded-lg w-3/4 animate-pulse ${isDark ? 'bg-nft-border/20' : 'bg-gray-200'}`} />
+            <div className={`h-4 rounded-lg w-1/2 animate-pulse ${isDark ? 'bg-nft-border/20' : 'bg-gray-200'}`} />
+            <div className={`h-20 rounded-lg animate-pulse ${isDark ? 'bg-nft-border/20' : 'bg-gray-200'}`} />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !nft) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-20 text-center">
         <h1 className="text-3xl font-bold mb-4">NFT не найден</h1>
-        <p className={`mb-6 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Запрошенный NFT не существует</p>
+        <p className={`mb-6 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+          {error ?? 'Не удалось загрузить данные с блокчейна'}
+        </p>
         <button onClick={() => navigate('/')} className="btn-primary">Вернуться в галерею</button>
       </div>
     );
   }
+
+  const etherscanBase = 'https://etherscan.io';
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -52,7 +83,7 @@ export default function NFTDetailPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
         <div className={`rounded-2xl overflow-hidden border ${isDark ? 'border-nft-border/30' : 'border-gray-200'}`}>
-          {imgError ? (
+          {imgError || !nft.image ? (
             <div className="aspect-square w-full" style={{ background: generateGradient(nft.id) }} />
           ) : (
             <img
@@ -81,54 +112,57 @@ export default function NFTDetailPage() {
 
           <h1 className="text-3xl sm:text-4xl font-black mb-4">{nft.name}</h1>
 
-          <div className="flex items-center gap-3 mb-6">
-            <img
-              src={nft.creator.avatar}
-              alt={nft.creator.name}
-              className="w-8 h-8 rounded-full object-cover"
-              onError={(e) => {
-                (e.target as HTMLImageElement).style.background = generateGradient(nft.creator.address);
-                (e.target as HTMLImageElement).src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
-              }}
-            />
-            <div>
-              <p className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Создатель</p>
-              <p className="text-sm font-medium">{nft.creator.name}</p>
-            </div>
-            <div className={`ml-4 pl-4 border-l ${isDark ? 'border-nft-border/30' : 'border-gray-200'}`}>
-              <p className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Владелец</p>
-              <p className="text-sm font-medium">{truncateAddress(nft.ownerAddress)}</p>
-            </div>
-          </div>
-
           <p className={`mb-6 leading-relaxed ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
-            {nft.description}
+            {nft.description || 'Описание отсутствует в метаданных.'}
           </p>
 
-          <div className={`p-5 rounded-2xl border mb-6 ${
+          <div className={`p-5 rounded-2xl border mb-6 space-y-4 ${
             isDark ? 'bg-nft-card/60 border-nft-border/30' : 'bg-gray-50 border-gray-200'
           }`}>
-            {nft.isAuction && nft.auctionEndsAt ? (
-              <div className="flex items-center gap-2 mb-3">
-                <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                <span className="text-sm font-medium">Аукцион завершится через {timeRemaining(nft.auctionEndsAt)}</span>
-              </div>
-            ) : (
-              <p className={`text-sm mb-2 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Текущая цена</p>
-            )}
-            <div className="flex items-baseline gap-2 mb-4">
-              <svg className="w-6 h-6 text-nft-violet" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M11.944 17.97L4.58 13.62 11.943 24l7.37-10.38-7.372 4.35h.003zM12.056 0L4.69 12.223l7.365 4.354 7.365-4.35L12.056 0z" />
-              </svg>
-              <span className="text-3xl font-black">{formatEth(nft.price)} ETH</span>
-            </div>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowBuyModal(true)}
-                className="btn-primary flex-1"
+            <div className="flex items-center justify-between">
+              <span className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Владелец</span>
+              <a
+                href={`${etherscanBase}/address/${nft.ownerAddress}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-mono text-sm text-nft-violet hover:text-nft-pink transition-colors"
               >
-                {nft.isAuction ? 'Сделать ставку' : 'Купить'}
-              </button>
+                {truncateAddress(nft.ownerAddress)}
+              </a>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Контракт</span>
+              <a
+                href={`${etherscanBase}/address/${nft.contractAddress}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-mono text-sm text-nft-violet hover:text-nft-pink transition-colors"
+              >
+                {truncateAddress(nft.contractAddress)}
+              </a>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Token ID</span>
+              <span className="font-mono text-sm font-bold">#{nft.tokenId}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Стандарт</span>
+              <span className="text-sm font-medium">ERC-721</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Блокчейн</span>
+              <span className="text-sm font-medium">Ethereum</span>
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <a
+                href={`${etherscanBase}/nft/${nft.contractAddress}/${nft.tokenId}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-primary flex-1 text-center"
+              >
+                Etherscan
+              </a>
               <button
                 onClick={() => toggleFavorite(nft.id)}
                 className={`w-12 h-12 rounded-xl flex items-center justify-center border transition-all ${
@@ -145,24 +179,12 @@ export default function NFTDetailPage() {
               </button>
             </div>
           </div>
-
-          <div className="flex items-center gap-4 text-sm">
-            <span className={isDark ? 'text-gray-500' : 'text-gray-400'}>
-              Создан {timeAgo(nft.createdAt)}
-            </span>
-            <span className={isDark ? 'text-gray-500' : 'text-gray-400'}>
-              ❤ {nft.likes} отметок
-            </span>
-            <span className={isDark ? 'text-gray-500' : 'text-gray-400'}>
-              Token ID: #{nft.tokenId}
-            </span>
-          </div>
         </div>
       </div>
 
       {nft.traits.length > 0 && (
         <section className="mb-12">
-          <h2 className="text-xl font-bold mb-4">Свойства</h2>
+          <h2 className="text-xl font-bold mb-4">Свойства ({nft.traits.length})</h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
             {nft.traits.map(trait => (
               <TraitBadge key={trait.traitType} trait={trait} />
@@ -171,52 +193,13 @@ export default function NFTDetailPage() {
         </section>
       )}
 
-      {relatedNfts.length > 0 && (
-        <section>
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold">Ещё из {collection?.name}</h2>
-            {collection && (
-              <Link
-                to={`/collections/${collection.slug}`}
-                className="text-sm text-nft-violet hover:text-nft-pink transition-colors font-medium"
-              >
-                Смотреть все →
-              </Link>
-            )}
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            {relatedNfts.map(relNft => (
-              <NFTCard key={relNft.id} nft={relNft} isFavorite={isFavorite(relNft.id)} onToggleFavorite={toggleFavorite} />
-            ))}
-          </div>
-        </section>
-      )}
-
-      {showBuyModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-          <div className={`w-full max-w-md rounded-2xl p-6 border animate-slide-up ${
-            isDark ? 'bg-nft-surface border-nft-border/30' : 'bg-white border-gray-200'
-          }`}>
-            <h3 className="text-xl font-bold mb-2">{nft.isAuction ? 'Сделать ставку' : 'Подтвердить покупку'}</h3>
-            <p className={`text-sm mb-6 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-              {isConnected
-                ? `Вы собираетесь ${nft.isAuction ? 'сделать ставку на' : 'купить'} "${nft.name}" за ${formatEth(nft.price)} ETH`
-                : 'Для покупки необходимо подключить кошелёк MetaMask'
-              }
-            </p>
-            <div className="flex gap-3">
-              <button onClick={() => setShowBuyModal(false)} className="btn-secondary flex-1">Отмена</button>
-              <button
-                onClick={() => setShowBuyModal(false)}
-                className="btn-primary flex-1"
-                disabled={!isConnected}
-              >
-                {isConnected ? 'Подтвердить' : 'Кошелёк не подключён'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <section className="mb-12">
+        <ActivityTable
+          nftId={nft.id}
+          initialContract={nft.contractAddress}
+          initialTokenId={nft.tokenId}
+        />
+      </section>
     </div>
   );
 }

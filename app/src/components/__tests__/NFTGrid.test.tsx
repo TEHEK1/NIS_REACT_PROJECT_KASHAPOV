@@ -5,11 +5,10 @@ import { renderWithProviders } from '@/test/utils';
 import type { NFT } from '@/types';
 
 const makeNft = (id: string, name: string): NFT => ({
-  id, tokenId: 1, name, description: '', image: '',
-  price: 1, currency: 'ETH', collectionId: 'col',
-  creator: { address: '0x', name: 'C', avatar: '', verified: false },
-  ownerAddress: '0x', traits: [], createdAt: '2026-01-01T00:00:00Z',
-  likes: 0, isAuction: false,
+  id, contractAddress: '0x1234567890abcdef1234567890abcdef12345678',
+  tokenId: parseInt(id), name, description: '', image: '',
+  ownerAddress: '0xabcdef1234567890abcdef1234567890abcdef12',
+  traits: [], collectionSlug: 'test',
 });
 
 describe('NFTGrid', () => {

@@ -3,11 +3,8 @@ import type { NFT, GalleryFilters, SortOption } from '@/types';
 
 const defaultFilters: GalleryFilters = {
   search: '',
-  collectionId: null,
-  priceMin: null,
-  priceMax: null,
-  sort: 'newest',
-  onlyAuctions: false,
+  collectionSlug: null,
+  sort: 'name-asc',
 };
 
 export function useGalleryFilters(allNfts: NFT[]) {
@@ -16,17 +13,11 @@ export function useGalleryFilters(allNfts: NFT[]) {
   const setSearch = useCallback((search: string) =>
     setFilters(prev => ({ ...prev, search })), []);
 
-  const setCollectionId = useCallback((collectionId: string | null) =>
-    setFilters(prev => ({ ...prev, collectionId })), []);
-
-  const setPriceRange = useCallback((priceMin: number | null, priceMax: number | null) =>
-    setFilters(prev => ({ ...prev, priceMin, priceMax })), []);
+  const setCollectionSlug = useCallback((collectionSlug: string | null) =>
+    setFilters(prev => ({ ...prev, collectionSlug })), []);
 
   const setSort = useCallback((sort: SortOption) =>
     setFilters(prev => ({ ...prev, sort })), []);
-
-  const setOnlyAuctions = useCallback((onlyAuctions: boolean) =>
-    setFilters(prev => ({ ...prev, onlyAuctions })), []);
 
   const resetFilters = useCallback(() => setFilters(defaultFilters), []);
 
@@ -37,42 +28,26 @@ export function useGalleryFilters(allNfts: NFT[]) {
       const query = filters.search.toLowerCase();
       result = result.filter(nft =>
         nft.name.toLowerCase().includes(query) ||
-        nft.description.toLowerCase().includes(query) ||
-        nft.creator.name.toLowerCase().includes(query)
+        nft.description.toLowerCase().includes(query)
       );
     }
 
-    if (filters.collectionId) {
-      result = result.filter(nft => nft.collectionId === filters.collectionId);
-    }
-
-    if (filters.priceMin !== null) {
-      result = result.filter(nft => nft.price >= filters.priceMin!);
-    }
-
-    if (filters.priceMax !== null) {
-      result = result.filter(nft => nft.price <= filters.priceMax!);
-    }
-
-    if (filters.onlyAuctions) {
-      result = result.filter(nft => nft.isAuction);
+    if (filters.collectionSlug) {
+      result = result.filter(nft => nft.collectionSlug === filters.collectionSlug);
     }
 
     switch (filters.sort) {
-      case 'price-asc':
-        result.sort((a, b) => a.price - b.price);
+      case 'name-asc':
+        result.sort((a, b) => a.name.localeCompare(b.name));
         break;
-      case 'price-desc':
-        result.sort((a, b) => b.price - a.price);
+      case 'name-desc':
+        result.sort((a, b) => b.name.localeCompare(a.name));
         break;
-      case 'newest':
-        result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      case 'token-asc':
+        result.sort((a, b) => a.tokenId - b.tokenId);
         break;
-      case 'oldest':
-        result.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-        break;
-      case 'most-liked':
-        result.sort((a, b) => b.likes - a.likes);
+      case 'token-desc':
+        result.sort((a, b) => b.tokenId - a.tokenId);
         break;
     }
 
@@ -82,11 +57,8 @@ export function useGalleryFilters(allNfts: NFT[]) {
   const activeFilterCount = useMemo(() => {
     let count = 0;
     if (filters.search) count++;
-    if (filters.collectionId) count++;
-    if (filters.priceMin !== null) count++;
-    if (filters.priceMax !== null) count++;
-    if (filters.onlyAuctions) count++;
-    if (filters.sort !== 'newest') count++;
+    if (filters.collectionSlug) count++;
+    if (filters.sort !== 'name-asc') count++;
     return count;
   }, [filters]);
 
@@ -95,10 +67,8 @@ export function useGalleryFilters(allNfts: NFT[]) {
     filteredNfts,
     activeFilterCount,
     setSearch,
-    setCollectionId,
-    setPriceRange,
+    setCollectionSlug,
     setSort,
-    setOnlyAuctions,
     resetFilters,
   };
 }

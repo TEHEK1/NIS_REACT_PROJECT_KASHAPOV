@@ -1,12 +1,12 @@
 import { useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { collections } from '@/data/collections';
-import { nfts } from '@/data/nfts';
 import { NFTGrid } from '@/components/NFTGrid';
+import { NftCardSkeleton } from '@/components/NftCardSkeleton';
 import { SearchBar } from '@/components/SearchBar';
 import { useFavorites } from '@/hooks/useFavorites';
-import { formatEth, formatNumber } from '@/utils/format';
-import { generateGradient } from '@/utils/gradient';
+import { useCollectionNfts } from '@/hooks/useCollectionNfts';
+import { truncateAddress } from '@/utils/format';
+import { generateGradient, generateAvatarGradient } from '@/utils/gradient';
 import { useTheme } from '@/context/ThemeContext';
 
 export default function CollectionDetailPage() {
@@ -15,19 +15,14 @@ export default function CollectionDetailPage() {
   const { isDark } = useTheme();
   const { isFavorite, toggleFavorite } = useFavorites();
   const [search, setSearch] = useState('');
-  const [coverError, setCoverError] = useState(false);
 
-  const collection = useMemo(() => collections.find(c => c.slug === slug), [slug]);
+  const { nfts, loading, error, collection } = useCollectionNfts(slug);
 
-  const collectionNfts = useMemo(() => {
-    if (!collection) return [];
-    let result = nfts.filter(n => n.collectionId === collection.id);
-    if (search) {
-      const q = search.toLowerCase();
-      result = result.filter(n => n.name.toLowerCase().includes(q) || n.description.toLowerCase().includes(q));
-    }
-    return result;
-  }, [collection, search]);
+  const filteredNfts = useMemo(() => {
+    if (!search) return nfts;
+    const q = search.toLowerCase();
+    return nfts.filter(n => n.name.toLowerCase().includes(q) || n.description.toLowerCase().includes(q));
+  }, [nfts, search]);
 
   if (!collection) {
     return (
@@ -41,29 +36,15 @@ export default function CollectionDetailPage() {
   return (
     <div>
       <div className="relative h-56 sm:h-72 overflow-hidden">
-        {coverError ? (
-          <div className="w-full h-full" style={{ background: generateGradient(collection.id) }} />
-        ) : (
-          <img
-            src={collection.coverImage}
-            alt={collection.name}
-            onError={() => setCoverError(true)}
-            className="w-full h-full object-cover"
-          />
-        )}
+        <div className="w-full h-full" style={{ background: generateGradient(collection.contractAddress) }} />
         <div className="absolute inset-0 bg-gradient-to-t from-nft-dark via-nft-dark/50 to-transparent" />
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-16 relative z-10 pb-10">
         <div className="flex items-end gap-4 mb-6">
-          <img
-            src={collection.avatarImage}
-            alt=""
-            className="w-24 h-24 rounded-2xl object-cover border-4 border-nft-dark shadow-xl"
-            onError={(e) => {
-              (e.target as HTMLImageElement).style.background = generateGradient(collection.id + '-avatar');
-              (e.target as HTMLImageElement).src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
-            }}
+          <div
+            className="w-24 h-24 rounded-2xl border-4 border-nft-dark shadow-xl"
+            style={{ background: generateAvatarGradient(collection.slug) }}
           />
           <div>
             <div className="flex items-center gap-2">
@@ -81,27 +62,47 @@ export default function CollectionDetailPage() {
           {collection.description}
         </p>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
-          {[
-            { label: 'Floor Price', value: `${formatEth(collection.floorPrice)} ETH` },
-            { label: 'Объём торгов', value: `${formatNumber(collection.totalVolume)} ETH` },
-            { label: 'Элементы', value: formatNumber(collection.itemCount) },
-            { label: 'Владельцы', value: formatNumber(collection.ownerCount) },
-          ].map(stat => (
-            <div key={stat.label} className={`p-4 rounded-xl border ${
-              isDark ? 'bg-nft-card/60 border-nft-border/30' : 'bg-white border-gray-200 shadow-sm'
-            }`}>
-              <p className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{stat.label}</p>
-              <p className="text-lg font-bold mt-1">{stat.value}</p>
-            </div>
-          ))}
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-8">
+          <div className={`p-4 rounded-xl border ${isDark ? 'bg-nft-card/60 border-nft-border/30' : 'bg-white border-gray-200 shadow-sm'}`}>
+            <p className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Контракт</p>
+            <a
+              href={`https://etherscan.io/address/${collection.contractAddress}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm font-mono font-bold mt-1 block text-nft-violet hover:text-nft-pink transition-colors"
+            >
+              {truncateAddress(collection.contractAddress)}
+            </a>
+          </div>
+          <div className={`p-4 rounded-xl border ${isDark ? 'bg-nft-card/60 border-nft-border/30' : 'bg-white border-gray-200 shadow-sm'}`}>
+            <p className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Загружено</p>
+            <p className="text-lg font-bold mt-1">{nfts.length} / {collection.tokenIds.length}</p>
+          </div>
+          <div className={`p-4 rounded-xl border ${isDark ? 'bg-nft-card/60 border-nft-border/30' : 'bg-white border-gray-200 shadow-sm'}`}>
+            <p className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Стандарт</p>
+            <p className="text-lg font-bold mt-1">ERC-721</p>
+          </div>
         </div>
 
         <div className="max-w-md mb-6">
           <SearchBar value={search} onChange={setSearch} placeholder={`Поиск в ${collection.name}...`} />
         </div>
 
-        <NFTGrid nfts={collectionNfts} isFavorite={isFavorite} onToggleFavorite={toggleFavorite} />
+        {error && (
+          <div className={`mb-6 p-4 rounded-xl text-sm ${isDark ? 'bg-red-500/10 text-red-400' : 'bg-red-50 text-red-600'}`}>
+            {error}
+          </div>
+        )}
+
+        {loading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+            {Array.from({ length: collection.tokenIds.length }).map((_, i) => (
+              <NftCardSkeleton key={i} />
+            ))}
+          </div>
+        ) : (
+          <NFTGrid nfts={filteredNfts} isFavorite={isFavorite} onToggleFavorite={toggleFavorite} />
+        )}
       </div>
     </div>
   );
