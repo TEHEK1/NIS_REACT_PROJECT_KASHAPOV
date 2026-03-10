@@ -1,0 +1,69 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-nft-dark text-gray-100 font-sans;
+  }
+
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-nft-dark;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-nft-border rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-nft-violet;
+  }
+}
+
+@layer components {
+  .glass {
+    @apply bg-nft-surface/80 backdrop-blur-xl border border-nft-border/50;
+  }
+
+  .glass-card {
+    @apply bg-nft-card/60 backdrop-blur-md border border-nft-border/30 rounded-2xl;
+  }
+
+  .gradient-text {
+    @apply bg-gradient-to-r from-nft-violet via-nft-pink to-nft-cyan bg-clip-text text-transparent;
+  }
+
+  .btn-primary {
+    @apply px-6 py-3 bg-gradient-to-r from-nft-violet to-nft-pink rounded-xl font-semibold
+           text-white transition-all duration-300 hover:shadow-lg hover:shadow-nft-violet/30
+           hover:scale-[1.02] active:scale-[0.98];
+  }
+
+  .btn-secondary {
+    @apply px-6 py-3 bg-nft-card border border-nft-border rounded-xl font-semibold
+           text-gray-200 transition-all duration-300 hover:bg-nft-border/50 hover:border-nft-violet/50
+           active:scale-[0.98];
+  }
+
+  .nft-card-hover {
+    @apply transition-all duration-300 hover:-translate-y-1
+           hover:shadow-xl hover:shadow-nft-violet/10 hover:border-nft-violet/30;
+  }
+
+  .input-field {
+    @apply w-full px-4 py-3 bg-nft-card border border-nft-border/50 rounded-xl
+           text-gray-100 placeholder-gray-500 outline-none transition-all duration-200
+           focus:border-nft-violet/50 focus:ring-2 focus:ring-nft-violet/20;
+  }
+}
+
+@layer utilities {
+  .animate-delay-100 { animation-delay: 100ms; }
+  .animate-delay-200 { animation-delay: 200ms; }
+  .animate-delay-300 { animation-delay: 300ms; }
+  .animate-delay-400 { animation-delay: 400ms; }
+}
